@@ -6,12 +6,11 @@ from django.conf import settings
 from django.shortcuts import redirect
 from rest_framework.response import Response
 from .mixins import PublicApiMixin, ApiErrorsMixin
-from accounts.utils import send_generated_otp_to_sms, resend_otp
 from .utils import google_get_access_token, google_get_user_info, generate_tokens_for_user
-from accounts.models import User, OneTimePassword
+from accounts.models import User
 from rest_framework import status
 from .serializers import UserSerializer
-from rest_framework.permissions import IsAuthenticated
+
 
 
 class GoogleLoginApi(PublicApiMixin, ApiErrorsMixin, APIView):
@@ -74,23 +73,3 @@ class GoogleLoginApi(PublicApiMixin, ApiErrorsMixin, APIView):
             }
             print(response_data)
             return Response(response_data, status=status.HTTP_200_OK)
-class AddPhoneNumber(APIView):
-    permission_classes = [IsAuthenticated]
-    def post(self,request):
-        phone_number=request.data.get('phone_number')
-        userId=request.data.get('user')
-        user=User.objects.get(pk=userId)
-        if phone_number and User.objects.filter(phone_number=phone_number).exclude(id=userId).exists():
-            return Response({'message': 'This Phone number is already taken'}, status=status.HTTP_400_BAD_REQUEST)
-        elif phone_number:
-            user.phone_number=phone_number
-            user.is_verified=False
-            user.save()
-            if OneTimePassword.objects.filter(user=userId).exists():
-                resend_otp(phone_number=phone_number,user=userId, request=request)
-            else:
-             send_generated_otp_to_sms(phone_number, request)
-            return Response({"message":"otp sent to your mobile number"},status=status.HTTP_200_OK)
-        else:
-            return Response({'error':'Please provide a valid phone number'},status=status.HTTP_400_BAD_REQUEST)
-        

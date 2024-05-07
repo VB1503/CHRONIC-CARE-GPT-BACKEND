@@ -1,50 +1,46 @@
-
 from django.core.mail import EmailMessage
 import random
-import requests
-from django.conf import settings
 from .models import User, OneTimePassword
+from django.conf import settings
 
-
-
-def send_generated_otp_to_sms(phone_number, request): 
-    otp=random.randint(100000, 999999) 
-    user = User.objects.get(phone_number=phone_number)
-    otp_obj=OneTimePassword.objects.create(user=user, otp=otp)
-    api_key = settings.TWO_FACTOR_API_KEY
-    api_url = f"https://2factor.in/API/V1/{api_key}/SMS/{user.phone_number}/{otp}"
+def send_generated_otp_to_email(email, request):
+    otp = random.randint(100000, 999999)
+    user = User.objects.get(email=email)
+    otp_obj = OneTimePassword.objects.create(user=user, otp=otp)
+    subject = "Your OTP for Verification"
+    message = f"Your OTP is: {otp}"
+    from_email = settings.DEFAULT_FROM_EMAIL
+    receiver = email
     try:
-        response = requests.get(api_url)
-        response.raise_for_status()  # Raise an HTTPError for bad responses
-
-        json_response = response.json()
-        if json_response['Status'] == 'Success':
-            print("OTP Sent successfully. Session ID:", json_response['Details'])
-        else:
-            return Exception(f"Failed to send OTP. Reason: {json_response['Details']}")
-    except requests.RequestException as e:
-        return Exception(f"Request to 2Factor.in failed. Reason: {str(e)}")
+        email = EmailMessage(
+            subject=subject,
+            body=message,
+            from_email=from_email,
+            to=[receiver],
+        )
+        email.send()
+        print("OTP Sent successfully to email.")
     except Exception as e:
         return e
-   
-def resend_otp(phone_number,user,request):
-    otp=random.randint(100000, 999999) 
-    currentOtp = OneTimePassword.objects.get(user=user)
-    currentOtp.otp = otp
-    currentOtp.save()
-    api_key = settings.TWO_FACTOR_API_KEY
-    api_url = f"https://2factor.in/API/V1/{api_key}/SMS/{phone_number}/{otp}"
-    try:
-        response = requests.get(api_url)
-        response.raise_for_status()  # Raise an HTTPError for bad responses
 
-        json_response = response.json()
-        if json_response['Status'] == 'Success':
-            print("OTP Sent successfully. Session ID:", json_response['Details'])
-        else:
-            return Exception(f"Failed to send OTP. Reason: {json_response['Details']}")
-    except requests.RequestException as e:
-        return Exception(f"Request to 2Factor.in failed. Reason: {str(e)}")
+def resend_otp_email(email, user, request):
+    otp = random.randint(100000, 999999)
+    current_otp = OneTimePassword.objects.get(user=user)
+    current_otp.otp = otp
+    current_otp.save()
+    subject = "Resend OTP for Verification"
+    message = f"Your new OTP is: {otp}"
+    from_email = settings.DEFAULT_FROM_EMAIL
+    receiver = email
+    try:
+        email = EmailMessage(
+            subject=subject,
+            body=message,
+            from_email=from_email,
+            to=[receiver],
+        )
+        email.send()
+        print("OTP Resent successfully to email.")
     except Exception as e:
         return e
 

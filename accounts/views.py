@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from accounts.models import OneTimePassword
 from accounts.serializers import PasswordResetRequestSerializer,LogoutUserSerializer, UserRegisterSerializer, LoginSerializer, SetNewPasswordSerializer, ChangePasswordRequestSerializer
 from rest_framework import status
-from .utils import send_generated_otp_to_sms,resend_otp,send_normal_email
+from .utils import send_generated_otp_to_email,resend_otp_email,send_normal_email
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import smart_str, DjangoUnicodeDecodeError
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
@@ -29,7 +29,7 @@ class RegisterView(GenericAPIView):
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             user_data=serializer.data
-            send_generated_otp_to_sms(user_data['phone_number'], request)
+            send_generated_otp_to_email(user_data['email'], request)
             return Response({
                 'data':user_data,
                 'message':'thanks for signing up a passcode has be sent to verify your email'
@@ -139,8 +139,8 @@ class LogoutApiView(GenericAPIView):
 class ResendOTPView(GenericAPIView):
     def post(self,request):
         user=request.data['user']
-        phone_number=request.data['phone_number']
-        resend_otp(phone_number,user, request)
+        phone_number=request.data['email']
+        resend_otp_email(phone_number,user, request)
         return Response({"message":f"OTP has been sent to your phone number:{phone_number}"})
 
 
