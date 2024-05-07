@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+
+# Ignore environment directory
+env/
+
+# Ignore local development settings
+*.env
+
+# Ignore SQLite database file
+*.sqlite3
